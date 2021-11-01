@@ -40,7 +40,7 @@ def verify_password(plain_password, hashed_password):
     return pwd_cxt.verify(plain_password, hashed_password)
 
 @app.post('/signup', response_model=schemas.ShowUser)
-def create_user(name: str, email: str, password: str, request: schemas.User, db: Session = Depends(get_db)):
+def create_user(request: schemas.User, db: Session = Depends(get_db)):
     hashedPassword = pwd_cxt.hash(request.password)
     new_user = models.User(name=request.name, email=request.email, password=hashedPassword)
     db.add(new_user)
@@ -49,29 +49,27 @@ def create_user(name: str, email: str, password: str, request: schemas.User, db:
     return new_user
 
 @app.post('/login/')
-def login(email: str,password:str, request: schemas.Login, db: Session = Depends(get_db)):
+def login(request: schemas.Login, db: Session = Depends(get_db)):
     hashedPassword = pwd_cxt.hash(request.password)
-    user = db.query(models.User).filter(models.User.email==request.password).first()
-    db.add(user)
-    db.commit()
-    db.refresh(user)
+    #if not verify_password(login.password, request.password):
+        #raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            #detail=f"Incorrect password")
+    user = db.query(models.User).filter(models.User.email==request.email).first()
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"Invalid Credentials")
-    if not password.verify(user.password, request.password):
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=f"Incorrect password")
+
     access_token = create_access_token(data={"sub": user.email})
     return {"access_token": access_token, "token_type": "bearer"}
 
 
 
 @app.get('/me', response_model=schemas.ShowUser)
-def get_user(email:str, db: Session = Depends(get_db)):
-    user = db.query(models.User).filter(models.User.email==email).first()
+def get_user(access_token, db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.email==access_token).first()
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=f"User with the email {email} is not available")
+                            detail=f"User with the email is not available")
     return user
 
 
