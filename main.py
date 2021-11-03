@@ -70,10 +70,19 @@ def login(request: schemas.Login, db: Session = Depends(get_db)):
     return {"access_token": access_token, "token_type": "bearer"}
 
 
+def decode_access_token(token):
+    a = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+    print(a)
+    return a['sub']
 
-@app.get('/me', response_model=schemas.User)
+
+
+@app.get('/me')
 def get_user(access_token, db: Session = Depends(get_db)):
-    user = db.query(models.User).filter(models.User.email==access_token).first()
+    email= decode_access_token(access_token)
+    print(email)
+
+    user = db.query(models.User).filter(models.User.email==email).first()
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"User with the email is not available")
