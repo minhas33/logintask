@@ -26,4 +26,7 @@ class Token(BaseModel):
 
 
 class TokenData(BaseModel):
-    name: Optional[str] = None
+    email: Optional[str] = None
+
+class UserInDB(User):
+    hashed_password: str

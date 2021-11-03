@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Depends, status, Response, HTTPException
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from datetime import timedelta, datetime
 from typing import Optional
@@ -25,6 +26,8 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
 
 app = FastAPI()
 
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl='token')
+
 models.Base.metadata.create_all(bind=engine)
 
 def get_db():
@@ -39,6 +42,9 @@ pwd_cxt = CryptContext(schemes=["bcrypt"], deprecated="auto")
 def verify_password(plain_password, hashed_password):
     return pwd_cxt.verify(plain_password, hashed_password)
 
+def get_password_hash(password):
+    return pwd_cxt.hash(password)
+
 @app.post('/signup', response_model=schemas.ShowUser)
 def create_user(request: schemas.User, db: Session = Depends(get_db)):
     hashedPassword = pwd_cxt.hash(request.password)
@@ -50,10 +56,11 @@ def create_user(request: schemas.User, db: Session = Depends(get_db)):
 
 @app.post('/login/')
 def login(request: schemas.Login, db: Session = Depends(get_db)):
-    hashedPassword = pwd_cxt.hash(request.password)
-    #if not verify_password(login.password, request.password):
-        #raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            #detail=f"Incorrect password")
+    password = pwd_cxt.hash(request.password)
+    #if not verify_password(password, login.hashedpassword):
+     #  raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+      #                     detail=f"Incorrect password")
+
     user = db.query(models.User).filter(models.User.email==request.email).first()
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
@@ -64,7 +71,7 @@ def login(request: schemas.Login, db: Session = Depends(get_db)):
 
 
 
-@app.get('/me', response_model=schemas.ShowUser)
+@app.get('/me', response_model=schemas.User)
 def get_user(access_token, db: Session = Depends(get_db)):
     user = db.query(models.User).filter(models.User.email==access_token).first()
     if not user:
