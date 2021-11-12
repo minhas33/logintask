@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from typing import Optional
+from datetime import datetime
 
 class User(BaseModel):
 
@@ -27,6 +28,7 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
     email: Optional[str] = None
+    expires: Optional[datetime]
 
 class UserInDB(User):
     hashed_password: str
